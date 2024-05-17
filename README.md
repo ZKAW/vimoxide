@@ -1,5 +1,4 @@
 # Vimoxide
-Zoxide inspired Nvim behavior.
 A tool to quickly open files with Vim / Nvim based on frequency of access.
 
 ## Setup
