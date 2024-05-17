@@ -1,0 +1,36 @@
+[tasks.lint]
+command = "cargo"
+args = ["clippy", "--fix", "--bin", "dowels"]
+
+[tasks.lint-force]
+command = "cargo"
+args = ["clippy", "--fix", "--bin", "dowels", "--allow-dirty"]
+
+[tasks.fmt]
+command = "cargo"
+args = ["fmt"]
+
+# sanatize will make cargo fmt and cargo lint
+[tasks.sanitize]
+dependencies = ["fmt", "lint"]
+
+[tasks.sanitize-force]
+dependencies = ["fmt", "lint-force"]
+
+[tasks.build-release]
+command = "cargo"
+args = ["build", "--release"]
+
+[tasks.copy]
+command = "cp"
+args = ["./target/release/dowels", "./208dowels"]
+
+[tasks.release]
+dependencies = ["build-release", "copy"]
+
+[tasks.install]
+description = "Build and run the installer"
+script = [
+    "cargo build --release --manifest-path=installer/Cargo.toml",
+    "sudo ./installer/target/release/vimoxide-installer"
+]
