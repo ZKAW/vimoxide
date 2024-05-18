@@ -55,14 +55,25 @@ pub fn update_history(db: &mut HashMap<PathBuf, FileEntry>, path: &str) {
     let path_buf = PathBuf::from(path);
     let absolute_path = fs::canonicalize(&path_buf).unwrap_or_else(|_| path_buf.clone());
 
-    let entry = db.entry(absolute_path.clone()).or_insert(FileEntry {
-        path: absolute_path.clone(),
-        rank: 0,
-    });
-    entry.rank += 1;
+    if absolute_path.exists() {
+        let entry = db.entry(absolute_path.clone()).or_insert(FileEntry {
+            path: absolute_path.clone(),
+            rank: 0,
+        });
+        entry.rank += 1;
+    }
 }
 
 pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) -> Option<String> {
+    if let Some(entry) = db.values().find(|entry| {
+        entry
+            .path
+            .file_stem()
+            .map_or(false, |stem| stem.to_string_lossy() == query)
+    }) {
+        return Some(entry.path.to_string_lossy().into_owned());
+    }
+
     db.values()
         .filter(|entry| {
             (entry
