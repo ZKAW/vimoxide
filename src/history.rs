@@ -65,6 +65,11 @@ pub fn update_history(db: &mut HashMap<PathBuf, FileEntry>, path: &str) {
 }
 
 pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) -> Option<String> {
+    let query_path = PathBuf::from(query);
+    if query_path.exists() {
+        return Some(query.to_string());
+    }
+
     if let Some(entry) = db.values().find(|entry| {
         entry
             .path
