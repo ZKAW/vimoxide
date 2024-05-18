@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 use vimoxide::constants::HISTORY_FILE;
 
-
 #[derive(Debug)]
 pub struct FileEntry {
     pub path: PathBuf,
@@ -24,7 +23,8 @@ pub fn load_history() -> HashMap<PathBuf, FileEntry> {
 
     let mut file = fs::File::open(&db_path).expect("Failed to open the history file");
     let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Failed to read the history file");
+    file.read_to_string(&mut contents)
+        .expect("Failed to read the history file");
 
     for line in contents.lines() {
         let parts: Vec<&str> = line.split('\t').collect();
@@ -65,9 +65,15 @@ pub fn update_history(db: &mut HashMap<PathBuf, FileEntry>, path: &str) {
 pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) -> Option<String> {
     db.values()
         .filter(|entry| {
-            (entry.path.file_stem().map_or(false, |stem| stem.to_string_lossy().contains(query)) ||
-            entry.path.file_name().map_or(false, |name| name.to_string_lossy().contains(query))) &&
-            entry.path.exists()
+            (entry
+                .path
+                .file_stem()
+                .map_or(false, |stem| stem.to_string_lossy().contains(query))
+                || entry
+                    .path
+                    .file_name()
+                    .map_or(false, |name| name.to_string_lossy().contains(query)))
+                && entry.path.exists()
         })
         .max_by_key(|entry| entry.rank)
         .map(|entry| entry.path.to_string_lossy().into_owned())

@@ -1,10 +1,10 @@
 [tasks.lint]
 command = "cargo"
-args = ["clippy", "--fix", "--bin", "dowels"]
+args = ["clippy", "--fix", "--bin", "vimoxide"]
 
 [tasks.lint-force]
 command = "cargo"
-args = ["clippy", "--fix", "--bin", "dowels", "--allow-dirty"]
+args = ["clippy", "--fix", "--bin", "vimoxide", "--allow-dirty"]
 
 [tasks.fmt]
 command = "cargo"
@@ -23,7 +23,7 @@ args = ["build", "--release"]
 
 [tasks.copy]
 command = "cp"
-args = ["./target/release/dowels", "./208dowels"]
+args = ["./target/release/vimoxide", "./vimoxide"]
 
 [tasks.release]
 dependencies = ["build-release", "copy"]

@@ -3,8 +3,8 @@ use serde::Deserialize;
 
 use vimoxide::constants::CONFIG_FILE;
 
-mod history;
 mod file_handling;
+mod history;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -16,22 +16,28 @@ fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
     let config_file_path = config_dir.join("vimoxide").join(CONFIG_FILE);
 
     // Try to read the configuration file
-    let config_file = match std::fs::File::open(&config_file_path) {
+    let config_file = match std::fs::File::open(config_file_path) {
         Ok(file) => file,
         Err(_) => {
-            return Ok(Config { executor: "vim".to_string() });
+            return Ok(Config {
+                executor: "vim".to_string(),
+            });
         }
     };
 
     let config: Config = match serde_json::from_reader(config_file) {
         Ok(config) => config,
         Err(_) => {
-            return Ok(Config { executor: "vim".to_string() });
+            return Ok(Config {
+                executor: "vim".to_string(),
+            });
         }
     };
 
     if config.executor != "vim" && config.executor != "nvim" {
-        return Ok(Config { executor: "vim".to_string() });
+        return Ok(Config {
+            executor: "vim".to_string(),
+        });
     }
 
     Ok(config)
@@ -42,10 +48,12 @@ fn main() {
         .version("0.1.0")
         .author("Author: ZKAW (https://github.com/ZKAW)")
         .about("A tool to quickly open files with Vim / Nvim based on frequency of access")
-        .arg(Arg::new("file")
-            .help("The file to open with Vim / Nvim")
-            .required(true)
-            .index(1))
+        .arg(
+            Arg::new("file")
+                .help("The file to open with Vim / Nvim")
+                .required(true)
+                .index(1),
+        )
         .get_matches();
 
     let file = matches.value_of("file").unwrap();
