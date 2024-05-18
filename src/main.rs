@@ -1,7 +1,41 @@
 use clap::{App, Arg};
+use serde::Deserialize;
 
-mod database;
+use vimoxide::constants::CONFIG_FILE;
+
+mod history;
 mod file_handling;
+
+#[derive(Debug, Deserialize)]
+pub struct Config {
+    pub executor: String,
+}
+
+fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
+    let config_dir = dirs::config_dir().ok_or("Failed to find the config directory")?;
+    let config_file_path = config_dir.join("vimoxide").join(CONFIG_FILE);
+
+    // Try to read the configuration file
+    let config_file = match std::fs::File::open(&config_file_path) {
+        Ok(file) => file,
+        Err(_) => {
+            return Ok(Config { executor: "vim".to_string() });
+        }
+    };
+
+    let config: Config = match serde_json::from_reader(config_file) {
+        Ok(config) => config,
+        Err(_) => {
+            return Ok(Config { executor: "vim".to_string() });
+        }
+    };
+
+    if config.executor != "vim" && config.executor != "nvim" {
+        return Ok(Config { executor: "vim".to_string() });
+    }
+
+    Ok(config)
+}
 
 fn main() {
     let matches = App::new("vimoxide")
@@ -15,17 +49,17 @@ fn main() {
         .get_matches();
 
     let file = matches.value_of("file").unwrap();
-    let config = database::load_config().unwrap_or_else(|err| {
+    let config = load_config().unwrap_or_else(|err| {
         eprintln!("Failed to load config: {}", err);
         std::process::exit(1);
     });
 
-    let mut db = database::load_database();
+    let mut db = history::load_history();
 
-    let best_match_path = database::find_best_match(&db, file);
+    let best_match_path = history::find_best_match(&db, file);
     if let Some(ref path) = best_match_path {
         file_handling::open_with_executor(path, &config.executor);
-        database::update_database(&mut db, path);
-        database::save_database(&db).expect("Failed to save the database");
+        history::update_history(&mut db, path);
+        history::save_history(&db).expect("Failed to save the history");
     }
 }
