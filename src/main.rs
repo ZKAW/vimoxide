@@ -1,5 +1,4 @@
 use clap::{App, Arg};
-use std::path::PathBuf;
 
 mod database;
 mod file_handling;
@@ -22,23 +21,11 @@ fn main() {
     });
 
     let mut db = database::load_database();
-    let path = PathBuf::from(file);
 
-    if path.exists() {
-        file_handling::open_with_executor(&path, &config.executor);
-        database::update_database(&mut db, &path);
+    let best_match_path = database::find_best_match(&db, file);
+    if let Some(ref path) = best_match_path {
+        file_handling::open_with_executor(path, &config.executor);
+        database::update_database(&mut db, path);
         database::save_database(&db).expect("Failed to save the database");
-    } else {
-        let mut best_match_path = None;
-        if let Some(best_match) = database::find_best_match(&db, file) {
-            best_match_path = Some(best_match.path.clone());
-            file_handling::open_with_executor(&best_match.path, &config.executor);
-        }
-        if let Some(path) = best_match_path {
-            database::update_database(&mut db, &path);
-            database::save_database(&db).expect("Failed to save the database");
-        } else {
-            eprintln!("No matching file found for: {}", file);
-        }
     }
 }

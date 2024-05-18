@@ -25,19 +25,20 @@ pub fn load_database() -> HashMap<PathBuf, FileEntry> {
     fs::create_dir_all(&db_dir).expect("Failed to create directory for database");
 
     let db_path = db_dir.join(DATABASE_FILE);
+    if !db_path.exists() {
+        return db;
+    }
 
-    if db_path.exists() {
-        let mut file = fs::File::open(&db_path).expect("Failed to open the database file");
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).expect("Failed to read the database file");
+    let mut file = fs::File::open(&db_path).expect("Failed to open the database file");
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).expect("Failed to read the database file");
 
-        for line in contents.lines() {
-            let parts: Vec<&str> = line.split('\t').collect();
-            if parts.len() == 2 {
-                let path = PathBuf::from(parts[0]);
-                if let Ok(rank) = parts[1].parse() {
-                    db.insert(path.clone(), FileEntry { path, rank });
-                }
+    for line in contents.lines() {
+        let parts: Vec<&str> = line.split('\t').collect();
+        if parts.len() == 2 {
+            let path = PathBuf::from(parts[0]);
+            if let Ok(rank) = parts[1].parse() {
+                db.insert(path.clone(), FileEntry { path, rank });
             }
         }
     }
@@ -57,18 +58,27 @@ pub fn save_database(db: &HashMap<PathBuf, FileEntry>) -> io::Result<()> {
     Ok(())
 }
 
-pub fn update_database(db: &mut HashMap<PathBuf, FileEntry>, path: &PathBuf) {
-    let entry = db.entry(path.clone()).or_insert(FileEntry {
-        path: path.clone(),
+pub fn update_database(db: &mut HashMap<PathBuf, FileEntry>, path: &str) {
+    let path_buf = PathBuf::from(path);
+    let absolute_path = fs::canonicalize(&path_buf).unwrap_or_else(|_| path_buf.clone());
+
+    let entry = db.entry(absolute_path.clone()).or_insert(FileEntry {
+        path: absolute_path.clone(),
         rank: 0,
     });
     entry.rank += 1;
 }
 
-pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) -> Option<&'a FileEntry> {
+pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) -> Option<String> {
     db.values()
-        .filter(|entry| entry.path.to_string_lossy().contains(query))
+        .filter(|entry| {
+            (entry.path.file_stem().map_or(false, |stem| stem.to_string_lossy().contains(query)) ||
+            entry.path.file_name().map_or(false, |name| name.to_string_lossy().contains(query))) &&
+            entry.path.exists()
+        })
         .max_by_key(|entry| entry.rank)
+        .map(|entry| entry.path.to_string_lossy().into_owned())
+        .or_else(|| Some(query.to_string()))
 }
 
 pub fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
