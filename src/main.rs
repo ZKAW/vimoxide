@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use serde::Deserialize;
 
 use vimoxide::constants::CONFIG_FILE;
@@ -44,7 +44,7 @@ fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 }
 
 fn main() {
-    let matches = App::new("vimoxide")
+    let matches = Command::new("vimoxide")
         .version("0.1.0")
         .author("Author: ZKAW (https://github.com/ZKAW)")
         .about("A tool to quickly open files with Vim / Nvim based on frequency of access")
@@ -56,7 +56,7 @@ fn main() {
         )
         .get_matches();
 
-    let file = matches.value_of("file").unwrap();
+    let file = matches.get_one::<String>("file").unwrap();
     let config = load_config().unwrap_or_else(|err| {
         eprintln!("Failed to load config: {}", err);
         std::process::exit(1);
