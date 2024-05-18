@@ -64,12 +64,21 @@ pub fn update_history(db: &mut HashMap<PathBuf, FileEntry>, path: &str) {
     }
 }
 
+/*
+Match will follow this specific priority order:
+1. Path exists
+2. Exact match
+3. Substring match
+4. Query (as a fallback)
+*/
 pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) -> Option<String> {
+    // Check if the query is a path
     let query_path = PathBuf::from(query);
     if query_path.exists() {
         return Some(query.to_string());
     }
 
+    // Check if the query is an exact match
     if let Some(entry) = db.values().find(|entry| {
         entry
             .path
@@ -79,6 +88,7 @@ pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) 
         return Some(entry.path.to_string_lossy().into_owned());
     }
 
+    // Check if the query is a substring of a path
     db.values()
         .filter(|entry| {
             (entry
