@@ -51,23 +51,25 @@ fn main() {
         .arg(
             Arg::new("file")
                 .help("The file to open with Vim / Nvim")
-                .required(true)
+                .required(false)
                 .index(1),
         )
         .get_matches();
 
-    let file = matches.get_one::<String>("file").unwrap();
     let config = load_config().unwrap_or_else(|err| {
         eprintln!("Failed to load config: {}", err);
         std::process::exit(1);
     });
 
-    let mut db = history::load_history();
-
-    let best_match_path = history::find_best_match(&db, file);
-    if let Some(ref path) = best_match_path {
-        file_handling::open_with_executor(path, &config.executor);
-        history::update_history(&mut db, path);
-        history::save_history(&db).expect("Failed to save the history");
+    if let Some(file) = matches.get_one::<String>("file") {
+        let mut db = history::load_history();
+        let best_match_path = history::find_best_match(&db, &file);
+        if let Some(ref path) = best_match_path {
+            file_handling::open_with_executor(path, &config.executor);
+            history::update_history(&mut db, path);
+            history::save_history(&db).expect("Failed to save the history");
+        }
+    } else {
+        file_handling::open_with_executor("", &config.executor); // No arg provided
     }
 }

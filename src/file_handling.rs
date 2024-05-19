@@ -1,17 +1,23 @@
 use std::process::Command as ProcessCommand;
 
 pub fn open_with_nvim(path: &str) {
-    ProcessCommand::new("nvim")
-        .arg(path)
-        .status()
-        .expect("Failed to open file with neovim");
+    let mut command = ProcessCommand::new("nvim");
+
+    if !path.is_empty() {
+        command.arg(path);
+    }
+
+    command.status().expect("Failed to open file with neovim");
 }
 
 pub fn open_with_vim(path: &str) {
-    ProcessCommand::new("vim")
-        .arg(path)
-        .status()
-        .expect("Failed to open file with vim");
+    let mut command = ProcessCommand::new("vim");
+
+    if !path.is_empty() {
+        command.arg(path);
+    }
+
+    command.status().expect("Failed to open file with vim");
 }
 
 pub fn open_with_executor(path: &str, executor: &str) {
