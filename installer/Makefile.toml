@@ -1,0 +1,30 @@
+[tasks.lint]
+command = "cargo"
+args = ["clippy", "--fix", "--bin", "vimoxide-installer"]
+
+[tasks.lint-force]
+command = "cargo"
+args = ["clippy", "--fix", "--bin", "vimoxide-installer", "--allow-dirty"]
+
+[tasks.fmt]
+command = "cargo"
+args = ["fmt"]
+
+# sanatize will make cargo fmt and cargo lint
+[tasks.sanitize]
+dependencies = ["fmt", "lint"]
+
+[tasks.sanitize-force]
+dependencies = ["fmt", "lint-force"]
+
+[tasks.build-release]
+command = "cargo"
+args = ["build", "--release"]
+
+[tasks.copy]
+command = "cp"
+args = ["./target/release/vimoxide-installer", "./vimoxide-installer"]
+
+[tasks.release]
+dependencies = ["build-release", "copy"]
+

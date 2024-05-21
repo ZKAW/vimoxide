@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use std::fs;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
-
 use vimoxide::constants::HISTORY_FILE;
+
+use crate::utils;
 
 #[derive(Debug)]
 pub struct FileEntry {
@@ -13,10 +14,8 @@ pub struct FileEntry {
 
 pub fn load_history() -> HashMap<PathBuf, FileEntry> {
     let mut db = HashMap::new();
-    let db_dir = dirs::config_dir().unwrap().join("vimoxide");
-    fs::create_dir_all(&db_dir).expect("Failed to create directory for history");
 
-    let db_path = db_dir.join(HISTORY_FILE);
+    let db_path = utils::get_history_file();
     if !db_path.exists() {
         return db;
     }

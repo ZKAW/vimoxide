@@ -1,46 +1,17 @@
 use clap::{Arg, Command};
-use serde::Deserialize;
-
-use vimoxide::constants::CONFIG_FILE;
+use std::env;
+use std::path::PathBuf;
 
 mod file_handling;
 mod history;
+mod utils;
 
-#[derive(Debug, Deserialize)]
-pub struct Config {
-    pub executor: String,
-}
+#[macro_use]
+extern crate lazy_static;
 
-fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
-    let config_dir = dirs::config_dir().ok_or("Failed to find the config directory")?;
-    let config_file_path = config_dir.join("vimoxide").join(CONFIG_FILE);
-
-    // Try to read the configuration file
-    let config_file = match std::fs::File::open(config_file_path) {
-        Ok(file) => file,
-        Err(_) => {
-            return Ok(Config {
-                executor: "vim".to_string(),
-            });
-        }
-    };
-
-    let config: Config = match serde_json::from_reader(config_file) {
-        Ok(config) => config,
-        Err(_) => {
-            return Ok(Config {
-                executor: "vim".to_string(),
-            });
-        }
-    };
-
-    if config.executor != "vim" && config.executor != "nvim" {
-        return Ok(Config {
-            executor: "vim".to_string(),
-        });
-    }
-
-    Ok(config)
+lazy_static! {
+    static ref SUDO_USER: String = env::var("SUDO_USER").expect("Failed to get SUDO_USER");
+    static ref SUDO_USER_HOME: PathBuf = PathBuf::from(format!("/home/{}", *SUDO_USER));
 }
 
 fn main() {
@@ -56,14 +27,11 @@ fn main() {
         )
         .get_matches();
 
-    let config = load_config().unwrap_or_else(|err| {
-        eprintln!("Failed to load config: {}", err);
-        std::process::exit(1);
-    });
+    let config = utils::load_config_file().expect("Failed to load the configuration file");
 
     if let Some(file) = matches.get_one::<String>("file") {
         let mut db = history::load_history();
-        let best_match_path = history::find_best_match(&db, &file);
+        let best_match_path = history::find_best_match(&db, file);
         if let Some(ref path) = best_match_path {
             file_handling::open_with_executor(path, &config.executor);
             history::update_history(&mut db, path);

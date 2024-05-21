@@ -33,7 +33,10 @@ fn get_shell_config(shell: &str) -> String {
     let path = match shell {
         "bash" => SUDO_USER_HOME.join(".bashrc"),
         "zsh" => SUDO_USER_HOME.join(".zshrc"),
-        "fish" => SUDO_USER_HOME.join(".config").join("fish").join("config.fish"),
+        "fish" => SUDO_USER_HOME
+            .join(".config")
+            .join("fish")
+            .join("config.fish"),
         _ => SUDO_USER_HOME.join(".bashrc"),
     };
 
@@ -48,7 +51,7 @@ fn main() {
 
     // Build the release version of the project
     let status = std::process::Command::new("cargo")
-        .args(&["build", "--release"])
+        .args(["build", "--release"])
         .status()
         .expect("Failed to build the project");
 
@@ -62,7 +65,7 @@ fn main() {
     let bin_path = target_dir.join("vimoxide");
     let bin_dest = PathBuf::from("/usr/bin/vimoxide");
 
-    if let Err(err) = fs::copy(&bin_path, &bin_dest) {
+    if let Err(err) = fs::copy(bin_path, bin_dest) {
         eprintln!("Error: Failed to copy binary: {}", err);
         std::process::exit(1);
     }
@@ -78,7 +81,7 @@ fn main() {
             if executor.is_empty() {
                 executor = "vim".to_string();
             }
-        },
+        }
         Err(_) => {
             eprintln!("Error: Failed to read input");
             std::process::exit(1);
@@ -94,8 +97,26 @@ fn main() {
         "executor": executor
     });
 
-    fs::write(&config_file, serde_json::to_string_pretty(&config_data).unwrap())
-        .expect("Failed to write config file");
+    fs::write(
+        &config_file,
+        serde_json::to_string_pretty(&config_data).unwrap(),
+    )
+    .expect("Failed to write config file");
+
+    // Make the files and folders owned by the original user (chown)
+    let status = std::process::Command::new("chown")
+        .args([
+            "-R",
+            &format!("{}:{}", *SUDO_USER, *SUDO_USER),
+            &config_dir.to_string_lossy(),
+        ])
+        .status()
+        .expect("Failed to change ownership of the config directory");
+
+    if !status.success() {
+        eprintln!("Error: Failed to change ownership of the config directory");
+        std::process::exit(1);
+    }
 
     println!("Configuration file created at: {}\n", config_file.display());
 
