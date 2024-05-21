@@ -70,11 +70,20 @@ Match will follow this specific priority order:
 3. Substring match
 4. Query (as a fallback)
 */
+
+fn get_path_or_query(path: &PathBuf, query: &str) -> String {
+    if path.exists() {
+        path.to_string_lossy().into_owned()
+    } else {
+        query.to_string()
+    }
+}
+
 pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) -> Option<String> {
     // Check if the query is a path
     let query_path = PathBuf::from(query);
     if query_path.exists() {
-        return Some(query.to_string());
+        return Some(get_path_or_query(&query_path, query));
     }
 
     // Check if the query is an exact match
@@ -84,7 +93,7 @@ pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) 
             .file_stem()
             .map_or(false, |stem| stem.to_string_lossy() == query)
     }) {
-        return Some(entry.path.to_string_lossy().into_owned());
+        return Some(get_path_or_query(&entry.path, query));
     }
 
     // Check if the query is a substring of a path
@@ -101,6 +110,6 @@ pub fn find_best_match<'a>(db: &'a HashMap<PathBuf, FileEntry>, query: &'a str) 
                 && entry.path.exists()
         })
         .max_by_key(|entry| entry.rank)
-        .map(|entry| entry.path.to_string_lossy().into_owned())
+        .map(|entry| get_path_or_query(&entry.path, query))
         .or_else(|| Some(query.to_string()))
 }

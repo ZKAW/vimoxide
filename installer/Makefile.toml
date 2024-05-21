@@ -27,4 +27,3 @@ args = ["./target/release/vimoxide-installer", "./vimoxide-installer"]
 
 [tasks.release]
 dependencies = ["build-release", "copy"]
-
