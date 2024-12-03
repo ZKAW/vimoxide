@@ -25,19 +25,39 @@ fn main() {
                 .required(false)
                 .index(1),
         )
+        .arg(
+            Arg::new("create")
+                .short('c')
+                .long("create")
+                .action(clap::ArgAction::SetTrue)
+                .help("Create the file and ignore history"),
+        )
         .get_matches();
+
 
     let config = utils::load_config_file().expect("Failed to load the configuration file");
 
-    if let Some(file) = matches.get_one::<String>("file") {
-        let mut db = history::load_history();
-        let best_match_path = history::find_best_match(&db, file);
-        if let Some(ref path) = best_match_path {
-            file_handling::open_with_executor(path, &config.executor);
+    if matches.get_one::<String>("file").is_none() {
+        file_handling::open_with_executor("", &config.executor); // No arg provided
+        return;
+    }
+
+    let file = matches.get_one::<String>("file").unwrap();
+    let create = matches.get_flag("create");
+
+    let best_match_path = if create {
+        Some(file.clone())
+    } else {
+        let db = history::load_history();
+        history::find_best_match(&db, &file)
+    };
+
+    if let Some(ref path) = best_match_path {
+        file_handling::open_with_executor(path, &config.executor);
+        if !create {
+            let mut db = history::load_history();
             history::update_history(&mut db, path);
             history::save_history(&db).expect("Failed to save the history");
         }
-    } else {
-        file_handling::open_with_executor("", &config.executor); // No arg provided
     }
 }
