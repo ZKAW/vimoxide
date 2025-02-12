@@ -53,7 +53,7 @@ fn main() {
     let status = std::process::Command::new("cargo")
         .args(["build", "--release"])
         .status()
-        .expect("Failed to build the project");
+        .expect("Failed to build the project, please install cargo on root user");
 
     if !status.success() {
         eprintln!("Error: Failed to build the project");
