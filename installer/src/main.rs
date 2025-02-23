@@ -1,17 +1,13 @@
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 #[macro_use]
 extern crate lazy_static;
 
 lazy_static! {
-    static ref SUDO_USER: String = env::var("SUDO_USER").expect("Failed to get SUDO_USER");
-    static ref SUDO_USER_HOME: PathBuf = PathBuf::from(format!("/home/{}", *SUDO_USER));
-}
-
-fn check_root() -> bool {
-    unsafe { libc::geteuid() == 0 }
+    static ref USER_HOME: PathBuf = PathBuf::from(env::var("HOME").expect("Failed to get HOME"));
 }
 
 fn get_shell() -> String {
@@ -31,24 +27,19 @@ fn get_shell() -> String {
 
 fn get_shell_config(shell: &str) -> String {
     let path = match shell {
-        "bash" => SUDO_USER_HOME.join(".bashrc"),
-        "zsh" => SUDO_USER_HOME.join(".zshrc"),
-        "fish" => SUDO_USER_HOME
+        "bash" => USER_HOME.join(".bashrc"),
+        "zsh" => USER_HOME.join(".zshrc"),
+        "fish" => USER_HOME
             .join(".config")
             .join("fish")
             .join("config.fish"),
-        _ => SUDO_USER_HOME.join(".bashrc"),
+        _ => USER_HOME.join(".bashrc"),
     };
 
     path.to_string_lossy().into_owned()
 }
 
 fn main() {
-    if !check_root() {
-        eprintln!("Error: This script must be run as root, retry with sudo");
-        std::process::exit(1);
-    }
-
     // Build the release version of the project
     let status = std::process::Command::new("cargo")
         .args(["build", "--release"])
@@ -65,21 +56,26 @@ fn main() {
     let bin_path = target_dir.join("vimoxide");
     let bin_dest = PathBuf::from("/usr/bin/vimoxide");
 
-    if let Err(err) = fs::copy(bin_path, bin_dest) {
-        eprintln!("Error: Failed to copy binary: {}", err);
+    let status = Command::new("sudo")
+        .args(["cp", bin_path.to_str().unwrap(), bin_dest.to_str().unwrap()])
+        .status()
+        .expect("Failed to execute sudo cp");
+
+    if !status.success() {
+        eprintln!("Error: Failed to copy the binary to /usr/bin");
         std::process::exit(1);
     }
 
     use std::io::{self, Write};
 
     let mut executor = String::new();
-    print!("Do you want to use 'vim' or 'nvim'? [vim]: ");
+    print!("Do you want to use 'nvim' or 'vim'? [nvim]: ");
     io::stdout().flush().unwrap();
     match io::stdin().read_line(&mut executor) {
         Ok(_) => {
             executor = executor.trim().to_string();
             if executor.is_empty() {
-                executor = "vim".to_string();
+                executor = "nvim".to_string();
             }
         }
         Err(_) => {
@@ -89,7 +85,7 @@ fn main() {
     };
 
     // Create the configuration file
-    let config_dir = SUDO_USER_HOME.join(".config").join("vimoxide");
+    let config_dir = USER_HOME.join(".config").join("vimoxide");
     fs::create_dir_all(&config_dir).expect("Failed to create config directory");
     let config_file = config_dir.join("conf.json");
 
@@ -102,21 +98,6 @@ fn main() {
         serde_json::to_string_pretty(&config_data).unwrap(),
     )
     .expect("Failed to write config file");
-
-    // Make the files and folders owned by the original user (chown)
-    let status = std::process::Command::new("chown")
-        .args([
-            "-R",
-            &format!("{}:{}", *SUDO_USER, *SUDO_USER),
-            &config_dir.to_string_lossy(),
-        ])
-        .status()
-        .expect("Failed to change ownership of the config directory");
-
-    if !status.success() {
-        eprintln!("Error: Failed to change ownership of the config directory");
-        std::process::exit(1);
-    }
 
     println!("Configuration file created at: {}\n", config_file.display());
 

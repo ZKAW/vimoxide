@@ -32,5 +32,5 @@ dependencies = ["build-release", "copy"]
 description = "Build and run the installer"
 script = [
     "cargo build --release --manifest-path=installer/Cargo.toml",
-    "sudo ./installer/target/release/vimoxide-installer"
+    "./installer/target/release/vimoxide-installer"
 ]
